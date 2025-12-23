@@ -1,0 +1,46 @@
+name: Update Year Progress
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Updates every night at midnight
+  workflow_dispatch:     # Allows you to click a button to run it manually
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Allows the action to push changes to your repo
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Calculate Progress
+        run: |
+          python3 -c "
+          import datetime
+          now = datetime.datetime.now()
+          year = now.year
+          start = datetime.datetime(year, 1, 1)
+          end = datetime.datetime(year + 1, 1, 1)
+          progress = (now - start) / (end - start)
+          percent = int(progress * 100)
+          
+          bar = '█' * (percent // 5) + '░' * (20 - (percent // 5))
+          display = f'⏳ {year} is {percent}% complete: {bar}'
+          
+          with open('README.md', 'r') as f:
+              content = f.read()
+          
+          import re
+          new_content = re.sub(r'.*?', 
+                               f'\n{display}\n', 
+                               content, flags=re.DOTALL)
+          
+          with open('README.md', 'w') as f:
+              f.write(new_content)
+          "
+
+      - name: Push Modification
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update year progress"
